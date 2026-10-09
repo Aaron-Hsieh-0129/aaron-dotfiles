@@ -1,16 +1,20 @@
-# Local overrides, secrets, and generated files.
-/lua/aaron/local.lua
+# Private component overrides and credentials.
+/nvim/lua/aaron/local.lua
+/zsh/local.zsh
+/zsh/local/
 .env
 .env.*
 *.log
 *.swp
 *.swo
 .DS_Store
-/session.vim
-
-# Keep locally created environments and build outputs out of Git.
+__pycache__/
+/nvim/session.vim
+# Generated environments, downloaded plugins, binaries, and builds stay outside Git.
 .venv/
 .conda/
 .cargo/
 target/
 /build/
+/nvim/build/
+/zsh/build/

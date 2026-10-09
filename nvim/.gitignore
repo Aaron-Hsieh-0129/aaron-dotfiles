@@ -1,0 +1,16 @@
+# Local overrides, secrets, and generated files.
+/lua/aaron/local.lua
+.env
+.env.*
+*.log
+*.swp
+*.swo
+.DS_Store
+/session.vim
+
+# Keep locally created environments and build outputs out of Git.
+.venv/
+.conda/
+.cargo/
+target/
+/build/

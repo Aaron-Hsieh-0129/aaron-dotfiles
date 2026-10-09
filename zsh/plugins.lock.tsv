@@ -1,0 +1,8 @@
+# name	url	commit (from Aaron's working installation)
+oh-my-zsh	https://github.com/ohmyzsh/ohmyzsh.git	d745fbf3bd49a5038e089d7d343ca89db0cbaaff
+powerlevel10k	https://github.com/romkatv/powerlevel10k.git	a0c9dbe80be404ff58e3ce5d7cf312582e370635
+zsh-completions	https://github.com/zsh-users/zsh-completions.git	f954400c72530daccb38868ebc8da42dace56bb0
+zsh-history-substring-search	https://github.com/zsh-users/zsh-history-substring-search.git	14c8d2e0ffaee98f2df9850b19944f32546fdea5
+zsh-autosuggestions	https://github.com/zsh-users/zsh-autosuggestions.git	85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5
+zsh-syntax-highlighting	https://github.com/zsh-users/zsh-syntax-highlighting.git	1d85c692615a25fe2293bdd44b34c217d5d2bf04
+zsh-autopair	https://github.com/hlissner/zsh-autopair.git	449a7c3d095bc8f3d78cf37b9549f8bb4c383f3d
