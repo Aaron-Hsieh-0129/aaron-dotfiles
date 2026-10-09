@@ -12,6 +12,7 @@ if [[ ${AARON_ZSH_LOAD_LOCAL:-1} != 0 ]]; then
     [[ ! -r "$AARON_ZSH_ROOT/local.zsh" ]] || source "$AARON_ZSH_ROOT/local.zsh"
 fi
 aaron_prepend_dir PATH "$AARON_ZSH_DATA/runtime/bin"
+aaron_prepend_dir PATH "$AARON_ZSH_DATA/native/bin"
 
 aaron_prepend_dir PATH "$HOME/.local/bin"
 aaron_prepend_dir PATH "$HOME/.npm-global/bin"

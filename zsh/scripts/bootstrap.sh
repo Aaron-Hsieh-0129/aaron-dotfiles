@@ -11,16 +11,14 @@ esac
 [[ $# == 0 ]] || { printf 'Unexpected arguments\n' >&2; exit 2; }
 # Avoid mixed Conda/HPC libraries during downloads and package installation.
 unset LD_LIBRARY_PATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH
-if [[ -x "$data/runtime/bin/zsh" && -x "$data/runtime/bin/git" ]]; then
-    export PATH="$data/runtime/bin:$PATH"
+source "$repo/scripts/runtime.sh"
+shell=$(aaron_zsh_select "$data" || true)
+if [[ "$shell" == "$data/"* ]]; then
+    export PATH="$(dirname -- "$shell"):$data/runtime/bin:$PATH"
 fi
-zsh_ready=0
-if command -v zsh >/dev/null && zsh -fc 'autoload -Uz is-at-least; is-at-least 5.8'; then
-    zsh_ready=1
-fi
-if (( ! zsh_ready )) || ! command -v git >/dev/null; then
+if [[ -z "$shell" ]] || ! command -v git >/dev/null; then
     if (( use_existing )); then
-        printf 'Install zsh 5.8+ and Git in your user environment first.\n' >&2
+        printf 'Install working zsh 5.8+ and Git in your user environment first (zsh must start without library warnings).\n' >&2
         exit 1
     fi
     conda_exe="${AARON_CONDA_EXE:-${CONDA_EXE:-}}"
@@ -28,13 +26,26 @@ if (( ! zsh_ready )) || ! command -v git >/dev/null; then
     [[ -x "$conda_exe" ]] || { printf 'Install Miniforge in your home directory, then rerun setup (no sudo needed).\n' >&2; exit 1; }
     mkdir -p "$data"
     if [[ -f "$data/runtime/conda-meta/history" ]]; then
-        "$conda_exe" install -y -p "$data/runtime" -c conda-forge zsh git
+        "$conda_exe" install -y -p "$data/runtime" --override-channels -c conda-forge --strict-channel-priority zsh git ncurses
     else
-        "$conda_exe" create -y -p "$data/runtime" -c conda-forge zsh git
+        "$conda_exe" create -y -p "$data/runtime" --override-channels -c conda-forge --strict-channel-priority zsh git ncurses
     fi
     export PATH="$data/runtime/bin:$PATH"
+    shell="$data/runtime/bin/zsh"
+    # Some cross-compiled Conda builds have an empty ZSH_VERSION. Build natively
+    # so version-dependent plugins work, without modifying Conda-owned files.
+    if ! aaron_zsh_ready "$shell" && "$shell" -dfc '[[ -z $ZSH_VERSION ]]'; then
+        if ! command -v cc >/dev/null || ! command -v make >/dev/null || ! command -v curl >/dev/null; then
+            "$conda_exe" install -y -p "$data/runtime" --override-channels -c conda-forge --strict-channel-priority c-compiler make curl
+            "$conda_exe" run --no-capture-output -p "$data/runtime" bash "$repo/scripts/build-native.sh" "$data"
+        else
+            CC=$(command -v cc) "$repo/scripts/build-native.sh" "$data"
+        fi
+        shell="$data/native/bin/zsh"
+        export PATH="$data/native/bin:$PATH"
+    fi
 fi
-zsh -fc 'autoload -Uz is-at-least; is-at-least 5.8' || { printf 'zsh 5.8+ is required.\n' >&2; exit 1; }
+aaron_zsh_ready "$shell" || { printf 'zsh 5.8+ must start without library warnings.\n' >&2; exit 1; }
 mkdir -p "$data/plugins"
 while IFS=$'\t' read -r name url commit; do
     [[ -n "$name" && "$name" != \#* ]] || continue

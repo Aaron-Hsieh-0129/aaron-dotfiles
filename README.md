@@ -17,7 +17,7 @@ cd ~/aaron-dotfiles
 
 `setup.sh` installs dependencies in your user directories, links `nvim/` to `${XDG_CONFIG_HOME:-~/.config}/nvim`, and links `zsh/.zshrc` to `~/.zshrc` (or `$ZDOTDIR/.zshrc` when set). Existing files and Neovim runtime directories are backed up. The checkout must remain in place because the installed configs use it directly.
 
-Neovim's private toolchain remains under `${XDG_DATA_HOME:-~/.local/share}/aaron-nvim`; zsh plugins and its optional private runtime remain under `${XDG_DATA_HOME:-~/.local/share}/aaron-zsh`. These component directories are local runtime storage, independent of the repository's name. Binaries, downloaded plugins, caches, history, sessions, secrets, and machine-specific overrides stay out of Git.
+Neovim's private toolchain remains under `${XDG_DATA_HOME:-~/.local/share}/aaron-nvim`; zsh plugins and its optional private runtime remain under `${XDG_DATA_HOME:-~/.local/share}/aaron-zsh`. Zsh setup repairs warning-emitting Conda shells with packages exclusively from conda-forge and has a native-build fallback for packages with a missing version. See the [zsh installation guide](zsh/README.md#install-without-sudo). These component directories are local runtime storage, independent of the repository's name. Binaries, downloaded plugins, caches, history, sessions, secrets, and machine-specific overrides stay out of Git.
 
 Use existing prerequisites, or choose a single component:
 

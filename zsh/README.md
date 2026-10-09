@@ -14,9 +14,15 @@ cd ~/aaron-dotfiles/zsh
 ./scripts/zsh.sh
 ```
 
-If zsh 5.8+ and Git are already available, setup uses them. Otherwise install [Miniforge](https://github.com/conda-forge/miniforge#install) in your home directory, then rerun setup. It creates a private Conda environment under `${XDG_DATA_HOME:-~/.local/share}/aaron-zsh/runtime` only when zsh/Git are missing. For an existing environment, `./scripts/setup.sh --use-existing` requires both tools and skips Conda installation.
+If zsh 5.8+ starts without warnings and Git is already available, setup uses them. Otherwise install [Miniforge](https://github.com/conda-forge/miniforge#install) in your home directory, then rerun setup. It creates or repairs a private Conda environment under `${XDG_DATA_HOME:-~/.local/share}/aaron-zsh/runtime` when zsh is missing, fails its startup check, or Git is missing. Runtime packages (including ncurses) come exclusively from conda-forge, with strict channel priority, to avoid mixing incompatible libraries. For an existing environment, `./scripts/setup.sh --use-existing` requires both tools and a clean zsh startup, and skips Conda installation.
+
+If `./bin/zsh` reports `libtinfow.so.6: no version information available`, run `./scripts/bootstrap.sh` from the `zsh/` directory (or `./zsh/scripts/bootstrap.sh` from the repository root), then launch again. This installs a compatible private runtime without changing your base Conda environment. The launcher and checks reject shells with loader warnings instead of hiding them. Changing `.zshrc` cannot repair a warning emitted before zsh reads its configuration.
+
+Some Linux ARM64 Conda builds also report an empty `ZSH_VERSION`. Setup detects this and builds checksum-verified zsh 5.9 source under the same data directory's `native/`, linked to the private ncurses. It uses an available C compiler, Make, and curl, or installs build tools into the private Conda runtime. Conda-owned zsh files stay intact; the native binary takes precedence. Source and build files are temporary and stay outside Git.
 
 Setup downloads the exact plugin commits, then links `~/.zshrc` to this checkout (or `$ZDOTDIR/.zshrc` if set). Existing configuration is backed up under `${XDG_STATE_HOME:-~/.local/state}/aaron-zsh/backups/`. Running setup again restores the pinned plugin versions and keeps the existing link. It stops if a downloaded plugin has local edits. No sudo, system packages, or login-shell changes are required.
+
+The launcher sets `ZDOTDIR` to the checkout. If you run installation inside that shell, the installer leaves the checkout's `.zshrc` intact. To install the home startup link explicitly, run `env -u ZDOTDIR ./scripts/install.sh` from `zsh/` (or `env -u ZDOTDIR ./scripts/install.sh --only zsh` from the repository root).
 
 Try the template before replacing `.zshrc`:
 
@@ -58,7 +64,7 @@ Arrow keys search history for the substring already typed. Autosuggestions and b
 ./scripts/check.sh
 ```
 
-This checks syntax, startup with the installed plugins, path deduplication, and the installer's backup/idempotence using temporary config/state directories. It does not replace your real `.zshrc`.
+This checks runtime selection and rejection of loader warnings, syntax, startup with the installed plugins, path deduplication, and the installer's backup/idempotence using temporary config/state directories. It does not replace your real `.zshrc`.
 
 To update plugins, change the relevant full Git commit in `plugins.lock.tsv`, run bootstrap, and rerun the check. Startup never performs network downloads or update prompts, apart from Powerlevel10k's optional platform Git helper setup.
 
