@@ -15,6 +15,31 @@ opt.splitright = true
 opt.splitbelow = true
 opt.termguicolors = true
 
+-- SSH yanks reach the client terminal via OSC 52, even with X11 forwarding.
+-- Keep a local paste cache: many terminals allow clipboard writes, but not reads.
+if vim.env.SSH_CONNECTION then
+    local osc52 = require("vim.ui.clipboard.osc52")
+    local copies, pastes = {}, {}
+    for _, register in ipairs({ "+", "*" }) do
+        local contents = { {}, "v" }
+        local copy = osc52.copy(register)
+        copies[register] = function(lines, regtype)
+            contents = { vim.deepcopy(lines), regtype }
+            copy(lines)
+        end
+        pastes[register] = function()
+            return vim.deepcopy(contents)
+        end
+    end
+    vim.g.clipboard = {
+        name = "OSC 52 (SSH, cached paste)",
+        copy = copies,
+        paste = pastes,
+        cache_enabled = 0,
+    }
+    opt.clipboard = "unnamedplus"
+end
+
 -- User-installed tools live outside the checkout and work across XDG locations.
 local tools = vim.fn.stdpath("data"):gsub("[/\\]nvim$", "") .. "/aaron-nvim"
 local sep = vim.fn.has("win32") == 1 and ";" or ":"

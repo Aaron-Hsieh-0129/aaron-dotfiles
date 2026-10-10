@@ -46,7 +46,7 @@ This skips creating a Conda environment but still requires Neovim 0.12+ with Lua
 
 The scripts target Linux/macOS; tested on Linux x86_64 with Neovim 0.12.2 and 0.12.5. On macOS, the compiler toolchain also needs an available platform SDK. On Windows, copy this checkout to `%LOCALAPPDATA%/nvim` and install tools separately.
 
-A Nerd Font is recommended. Configure a clipboard provider if you want clipboard access over SSH. Run `:LazyHealth`, `:Mason`, and `:ConformInfo` to inspect the setup.
+A Nerd Font is recommended. Over SSH, yanks copy to your computer through OSC 52; your terminal must allow OSC 52 clipboard writes. Neovim's `p` uses the last text copied inside Neovim; use your terminal's paste shortcut to insert text copied from another application. Local sessions keep LazyVim's normal system clipboard support. On Linux ARM64, an installed native clangd is used instead of Mason's unsupported release. Run `:LazyHealth`, `:Mason`, and `:ConformInfo` to inspect the setup.
 
 Only configuration, scripts, documentation, and plugin version metadata belong in Git. All downloaded plugins, tools, compiled parsers, build caches, and sessions stay in your user directories outside the checkout. Executable paths and credentials are not hardcoded.
 
@@ -104,7 +104,7 @@ Clangd needs a compilation database to know a project's include directories, com
 python3 ~/aaron-dotfiles/nvim/scripts/prepare-clangd.py build
 ```
 
-It enables `CMAKE_EXPORT_COMPILE_COMMANDS`, reruns CMake using the build's existing cache, and writes a local `.clangd` pointing to the exported database. For a CPU preset, pass `build_cpu` instead. CMake's existing configure-time checks run again; the helper does not build the application.
+It enables `CMAKE_EXPORT_COMPILE_COMMANDS`, reruns CMake using the build's existing cache, and writes a local `.clangd` pointing to the exported database. The helper reconstructs the NVHPC, MPI and CUDA executable/library paths from that cache for its subprocesses, so MPI wrappers can find `nvc`, `nvc++` and `nvfortran` even from a shell without the SDK on `PATH`. It does not source shell scripts or change the parent shell. For a CPU preset, pass `build_cpu` instead. CMake's existing configure-time checks run again; the helper does not build the application.
 
 For NVHPC builds, it translates compiler-specific flags for clangd and includes the MPI/GCC headers. CUDA builds use host-side CUDA parsing so Kokkos GPU types and annotations are recognized. The helper creates an editor-only database in `build/aaron-clangd/` with explicit commands for headers under `src/` and `include/`. This prevents clangd from losing CUDA mode when you open a header after a source file. Rerun the helper after changing build settings or adding source/header files; the original CMake database stays available to build tools. Prefer the same GCC standard library as the real build:
 
@@ -115,6 +115,17 @@ python3 ~/aaron-dotfiles/nvim/scripts/prepare-clangd.py build --gcc-toolchain /p
 `--cuda-path /path/to/cuda` and `--gpu-arch sm_90` override the toolkit and architecture discovered from CMake/compile commands. `--skip-configure` regenerates editor settings from an already exported database. Existing `.clangd` settings are backed up inside the build directory before replacement; inspect them if you had other custom settings.
 
 Restart Neovim after running the helper. Background indexing may take time on a large project. `.clangd` and `compile_commands.json` contain machine-specific paths and should be ignored by the project repository; neither belongs in this Neovim config repository. On VVMex these files are already ignored. The helper uses the active build's definitions and does not change source code or application compiler flags. Clangd's CUDA analysis is useful for navigation and completion, but the real NVHPC build remains the check for GPU/device compilation.
+
+The private bootstrap installs LLVM (`clang` and `clang-tools`) for clangd and its matching builtin headers. Linux ARM64 uses this native clangd instead of Mason. A modern LLVM is needed for GB10's `sm_120`; the system clangd 18 cannot parse that architecture. The helper also translates NVCC's relocatable device code flag to `-fgpu-rdc` and adds NVHPC's separate math library headers when cuRAND is outside the CUDA toolkit.
+
+To add LLVM to an existing private environment without rerunning the full bootstrap:
+
+```sh
+conda install --prefix "${XDG_DATA_HOME:-$HOME/.local/share}/aaron-nvim/runtime" \
+    --channel conda-forge --override-channels --yes clang clang-tools
+```
+
+Launch Neovim through `bin/nvim` or `nvim/scripts/nvim.sh` so it selects that runtime.
 
 See [clangd's compilation database documentation](https://clangd.llvm.org/design/compile-commands) and [configuration reference](https://clangd.llvm.org/config).
 

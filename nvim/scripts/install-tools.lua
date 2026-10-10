@@ -16,7 +16,6 @@ vim.defer_fn(function()
         require("mason")
         local registry = require("mason-registry")
         local names = {
-            "clangd",
             "lua-language-server",
             "pyright",
             "ruff",
@@ -30,6 +29,17 @@ vim.defer_fn(function()
             "cmakelang",
             "cmakelint",
         }
+        -- Linux ARM64 has no Mason clangd release; bootstrap provides LLVM.
+        local platform = vim.uv.os_uname()
+        if
+            not (
+                platform.sysname == "Linux"
+                and platform.machine == "aarch64"
+                and vim.fn.executable("clangd") == 1
+            )
+        then
+            table.insert(names, "clangd")
+        end
         local failed = {}
         registry.refresh(function()
             for _, name in ipairs(names) do

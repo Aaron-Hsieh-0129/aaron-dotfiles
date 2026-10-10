@@ -4,6 +4,7 @@
 import argparse
 import datetime
 import json
+import os
 from pathlib import Path
 import re
 import shlex
@@ -20,6 +21,37 @@ def cache_values(path):
             key, value = line.split("=", 1)
             values[key.split(":", 1)[0]] = value
     return values
+
+
+def build_environment(values, source):
+    """Restore tool locations from the cache for MPI wrappers and CMake probes."""
+    env = os.environ.copy()
+    bins, libraries = [], []
+    sdk = values.get("NVHPC_DIR")
+    if sdk:
+        root = Path(sdk)
+        bins.append(root / "compilers/bin")
+        libraries.append(root / "compilers/lib")
+    cuda = values.get("CUDAToolkit_ROOT")
+    if not cuda and values.get("CUDAToolkit_BIN_DIR"):
+        cuda = str(Path(values["CUDAToolkit_BIN_DIR"]).parent)
+    for prefix in (cuda, values.get("VVM_MPI_ROOT")):
+        if prefix:
+            root = Path(prefix)
+            bins.append(root / "bin")
+            libraries.extend((root / "lib", root / "lib64"))
+    for lang in ("C", "CXX", "Fortran"):
+        compiler = values.get("CMAKE_" + lang + "_COMPILER")
+        if compiler:
+            bins.append(Path(compiler).parent)
+    for key, paths in (("PATH", bins), ("LD_LIBRARY_PATH", libraries)):
+        existing = list(dict.fromkeys(str(p) for p in paths if p.is_dir()))
+        if env.get(key):
+            existing.append(env[key])
+        if existing:
+            env[key] = os.pathsep.join(existing)
+    env["VVM_ROOT"] = str(source)
+    return env
 
 
 def header_database(source, build, entries):
@@ -113,8 +145,9 @@ def main():
         )
     values = cache_values(cache)
     source = Path(values["CMAKE_HOME_DIRECTORY"])
+    env = build_environment(values, source)
     if not args.skip_configure:
-        subprocess.run(
+        configured = subprocess.run(
             [
                 "cmake",
                 "-S",
@@ -123,8 +156,14 @@ def main():
                 str(build),
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
             ],
-            check=True,
+            env=env,
         )
+        if configured.returncode:
+            parser.exit(
+                configured.returncode,
+                "CMake configure failed; see the diagnostics above. "
+                "No clangd settings were changed.\n",
+            )
     values = cache_values(cache)
     database = build / "compile_commands.json"
     if not database.exists():
@@ -161,6 +200,9 @@ def main():
                     "--c++17",
                     "-extended-lambda",
                     "--expt-relaxed-constexpr",
+                    "-expt-relaxed-constexpr",
+                    "--relocatable-device-code=*",
+                    "-rdc=*",
                     "-arch=*",
                     "-gpu=*",
                     "-Wext-lambda-captures-this",
@@ -184,7 +226,7 @@ def main():
                     "GCC toolchain must contain bin/g++; pass the correct --gcc-toolchain."
                 )
             include = subprocess.check_output(
-                [str(compiler), "-print-file-name=include"], text=True
+                [str(compiler), "-print-file-name=include"], text=True, env=env
             ).strip()
             add += ["--gcc-toolchain=" + str(gcc.resolve())]
             if Path(include).is_dir():
@@ -208,6 +250,14 @@ def main():
                 None,
             )
             add += ["-xcuda", "--cuda-host-only", "--cuda-path=" + str(cuda.resolve())]
+            if "--relocatable-device-code=true" in flags or "-rdc=true" in flags:
+                add += ["-fgpu-rdc"]
+            # Recent NVHPC SDKs keep cuRAND headers in math_libs, outside CUDA.
+            curand = values.get("CUDA_curand_LIBRARY")
+            if curand:
+                math_include = Path(curand).parent.parent / "include"
+                if (math_include / "curand_mtgp32_kernel.h").is_file():
+                    add += ["-isystem", str(math_include)]
             if arch:
                 add += ["--cuda-gpu-arch=" + arch]
         config += ["  Add:"] + ["    - " + json.dumps(flag) for flag in add]

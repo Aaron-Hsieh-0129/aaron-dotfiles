@@ -25,7 +25,7 @@ if [ "$use_existing" = false ]; then
     fi
     conda "$conda_action" --prefix "$tools_root/runtime" --channel conda-forge --override-channels --yes \
         'nvim>=0.12' git curl tar unzip nodejs python pip ripgrep fd-find lazygit fzf cmake make \
-        'rust>=1.89' c-compiler libclang pkg-config openssl
+        'rust>=1.89' c-compiler libclang clang clang-tools pkg-config openssl
     # Activate compiler variables as well as executable search paths.
     eval "$(conda shell.posix hook)"
     conda activate "$tools_root/runtime"
