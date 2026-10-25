@@ -1,6 +1,6 @@
 # Aaron's dotfiles
 
-One portable repository for Aaron's Neovim and zsh configuration. Neovim uses LazyVim, Catppuccin Mocha, clangd, formatters, and Git tools. Zsh uses Powerlevel10k, Oh My Zsh Git aliases, completions, history search, autosuggestions, syntax highlighting, and bracket pairing.
+One portable repository for Aaron's Neovim, zsh, and tmux configuration. Neovim uses LazyVim, Catppuccin Mocha, clangd, formatters, and Git tools. Zsh uses Powerlevel10k, Oh My Zsh Git aliases, completions, history search, autosuggestions, syntax highlighting, and bracket pairing.
 
 The combined repository name is **aaron-dotfiles**. The existing GitHub repository is currently `Aaron-Hsieh-0129/neovim-setup`; rename that same repository to `aaron-dotfiles` in **Settings → General → Repository name** before using the new clone URL below. The recommended description is “Aaron's portable Neovim and zsh configuration with no-sudo setup.” Renaming the existing repository keeps its Git history. There is no need to create another repository.
 
@@ -15,7 +15,7 @@ cd ~/aaron-dotfiles
 ./bin/zsh
 ```
 
-`setup.sh` installs dependencies in your user directories, links `nvim/` to `${XDG_CONFIG_HOME:-~/.config}/nvim`, and links `zsh/.zshrc` to `~/.zshrc` (or `$ZDOTDIR/.zshrc` when set). Existing files and Neovim runtime directories are backed up. The checkout must remain in place because the installed configs use it directly.
+`setup.sh` installs dependencies in your user directories, links `nvim/` to `${XDG_CONFIG_HOME:-~/.config}/nvim`, links `zsh/.zshrc` to `~/.zshrc` (or `$ZDOTDIR/.zshrc` when set), and links `tmux/.tmux.conf` to `~/.tmux.conf`. Existing files and Neovim runtime directories are backed up. The checkout must remain in place because the installed configs use it directly.
 
 Neovim's private toolchain remains under `${XDG_DATA_HOME:-~/.local/share}/aaron-nvim`; zsh plugins and its optional private runtime remain under `${XDG_DATA_HOME:-~/.local/share}/aaron-zsh`. Zsh setup repairs warning-emitting Conda shells with packages exclusively from conda-forge and has a native-build fallback for packages with a missing version. See the [zsh installation guide](zsh/README.md#install-without-sudo). These component directories are local runtime storage, independent of the repository's name. Binaries, downloaded plugins, caches, history, sessions, secrets, and machine-specific overrides stay out of Git.
 
@@ -25,9 +25,10 @@ Use existing prerequisites, or choose a single component:
 ./scripts/setup.sh --use-existing
 ./scripts/setup.sh --only nvim
 ./scripts/setup.sh --only zsh --use-existing
+./scripts/setup.sh --only tmux
 ```
 
-`--use-existing` requires the tools listed in the component guides. `./scripts/install.sh` links configurations without installing dependencies; it also accepts `--only nvim` or `--only zsh`. You can inspect available options with `--help`. Setup never changes your account's login shell.
+`--use-existing` requires the tools listed in the component guides. `./scripts/install.sh` links configurations without installing dependencies; it also accepts `--only nvim`, `--only zsh`, or `--only tmux`. You can inspect available options with `--help`. Setup never changes your account's login shell.
 
 ## Use and customize
 
@@ -35,11 +36,15 @@ Use existing prerequisites, or choose a single component:
 | --- | --- |
 | `bin/nvim` | Launch Neovim with its private tools |
 | `bin/zsh` | Launch zsh using this checkout |
-| `scripts/setup.sh` | Install and link both components |
-| `scripts/install.sh` | Link both components with backups |
-| `scripts/check.sh` | Run both integration checks |
+| `bin/tmux` | Launch system tmux or the private tmux runtime |
+| `scripts/setup.sh` | Install and link all components |
+| `scripts/install.sh` | Link all components with backups |
+| `scripts/check.sh` | Run component checks |
 | `nvim/` | LazyVim configuration, locks, language tools, and clangd helper |
 | `zsh/` | Shell configuration, plugin lock, and optional HPC profile |
+| `tmux/.tmux.conf` | tmux configuration linked to `~/.tmux.conf` |
+
+Tmux setup reuses a working tmux on `PATH` or an existing private runtime. If neither is available, it installs tmux from conda-forge into `${AARON_TMUX_DATA:-${XDG_DATA_HOME:-~/.local/share}/aaron-tmux}/runtime` using Conda. It finds Conda through `AARON_CONDA_EXE`, `CONDA_EXE`, `PATH`, or common home-directory installations. `--use-existing` reports a missing tmux without installing it. Launch with `./bin/tmux`, which also finds the private runtime. Previous `~/.tmux.conf` files are backed up under `${XDG_STATE_HOME:-~/.local/state}/aaron-tmux/backups/`. Setup does not reload running tmux servers. Its TPM plugins are expected under `~/.tmux/plugins/`; plugin installation is separate.
 
 See the [Neovim guide](nvim/README.md) for keybindings, language tools, and [clangd/CUDA project setup](nvim/README.md#fix-clangd-project-detection). See the [zsh guide](zsh/README.md) for shell settings and the NVHPC/MPI profile.
 
@@ -72,9 +77,10 @@ On another machine, pull changes with `git pull --ff-only`, use `:Lazy restore` 
 # Or check only one component:
 ./scripts/check.sh --only nvim
 ./scripts/check.sh --only zsh
+./scripts/check.sh --only tmux
 ```
 
-The checks validate editor formatting/LSP/Treesitter/Git integration and shell startup/plugins/path handling/installer backups. Zsh checks use temporary config directories. The Neovim check creates and removes a temporary Git fixture.
+The checks validate editor formatting/LSP/Treesitter/Git integration and shell startup/plugins/path handling/installer backups. The tmux check validates shell script syntax and executable availability with `tmux -V`. Zsh checks use temporary config directories. The Neovim check creates and removes a temporary Git fixture.
 
 ## Migration and backups
 
