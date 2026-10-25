@@ -16,6 +16,85 @@ spec.loader.exec_module(helper)
 
 
 class PrepareClangdTests(unittest.TestCase):
+    def test_mixed_cpp_standards_are_preserved(self):
+        entries = [
+            {
+                "directory": "/build",
+                "file": "Model.cpp",
+                "command": "mpic++ --c++17 -c Model.cpp",
+            },
+            {
+                "directory": "/build",
+                "file": "VVM_cleo_process_interface.cpp",
+                "arguments": [
+                    "mpic++", "-std=c++20", "-c", "VVM_cleo_process_interface.cpp"
+                ],
+            },
+            {
+                "directory": "/build",
+                "file": "legacy.cpp",
+                "arguments": ["mpic++", "-c", "legacy.cpp"],
+            },
+        ]
+        translated = helper.clangd_entries(entries)
+        self.assertIn("-std=c++17", translated[0]["arguments"])
+        self.assertNotIn("--c++17", translated[0]["arguments"])
+        self.assertIn("-std=c++20", translated[1]["arguments"])
+        self.assertNotIn("-std=c++17", translated[1]["arguments"])
+        self.assertIn("-std=c++17", translated[2]["arguments"])
+        self.assertIn("--c++17", entries[0]["command"])
+        self.assertNotIn("-std=c++17", entries[2]["arguments"])
+
+    def test_moved_and_external_cleo_headers_use_local_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "vvm"
+            build = root / "build"
+            cleo = root / "external-cleo"
+            build.mkdir()
+            headers = [
+                source / "src/core/geometry/Field.hpp",
+                source / "src/physics/cleo/VVM_cleo_process_interface.hpp",
+                cleo / "libs/superdrops/state.hpp",
+            ]
+            for header in headers:
+                header.parent.mkdir(parents=True, exist_ok=True)
+                header.touch()
+            paths = [
+                source / "src/core/Grid.cpp",
+                source / "src/physics/p3/Field.cpp",
+                source / "src/physics/cleo/VVM_cleo_process_interface.cpp",
+                cleo / "libs/superdrops/superdrop.cpp",
+            ]
+            entries = []
+            for index, path in enumerate(paths):
+                # CMake databases may spell source paths relative to directory.
+                filename = os.path.relpath(path, build)
+                entries.append(
+                    {
+                        "directory": str(build),
+                        "file": filename,
+                        "arguments": [
+                            "mpic++", "--c++17" if index < 2 else "-std=c++20",
+                            f"-DTARGET_{index}", "-c", filename,
+                        ],
+                    }
+                )
+            destination, count = helper.header_database(
+                source, build, helper.clangd_entries(entries),
+                {"CLEO_SOURCE_DIR": str(cleo)},
+            )
+            commands = {
+                entry["file"]: entry["arguments"]
+                for entry in json.loads((destination / "compile_commands.json").read_text())
+            }
+            self.assertEqual(count, 3)
+            for header, target in zip(headers, (0, 2, 3)):
+                self.assertIn(f"-DTARGET_{target}", commands[str(header)])
+                self.assertIn(str(header), commands[str(header)])
+                self.assertNotIn(entries[target]["file"], commands[str(header)])
+            self.assertIn("-std=c++20", commands[str(headers[2])])
+
     def test_cached_environment_restores_wrapper_compilers(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -81,6 +160,7 @@ class PrepareClangdTests(unittest.TestCase):
                     "-arch=sm_120",
                     "--relocatable-device-code=true",
                     "-expt-relaxed-constexpr",
+                    "-std=c++20",
                     "-c",
                     str(root / "src/sample.cpp"),
                 ],
@@ -97,11 +177,13 @@ class PrepareClangdTests(unittest.TestCase):
             self.assertIn('"--cuda-gpu-arch=sm_120"', config)
             self.assertIn('"--relocatable-device-code=*"', config)
             self.assertIn(str(root / "math/include"), config)
+            self.assertNotIn('"-std=c++17"', config)
             headers = json.loads(
                 (build / "aaron-clangd/compile_commands.json").read_text()
             )
             self.assertEqual(headers[1]["file"], str(root / "src/sample.hpp"))
             self.assertIn(str(root / "src/sample.hpp"), headers[1]["arguments"])
+            self.assertIn("-std=c++20", headers[1]["arguments"])
             self.assertEqual(
                 json.loads((build / "compile_commands.json").read_text()), [entry]
             )
