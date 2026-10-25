@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 target="$HOME/.tmux.conf"
 [[ -f "$repo/.tmux.conf" && ! -L "$repo/.tmux.conf" ]] || { printf 'Checkout .tmux.conf must be a regular file.\n' >&2; exit 1; }

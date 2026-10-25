@@ -55,6 +55,16 @@ Machine-specific files:
 
 Zsh's `nvim` function and editor settings use the Neovim component in the same checkout. `AARON_NVIM_LAUNCHER` can override that integration. Activate the optional compiler environment with `vvm-env` after filling in your machine's paths. The initial local migration preserves this machine's HPC settings in an ignored file.
 
+## Security and privacy
+
+Keep credentials and machine-specific scripts in the external local configuration described above. Ignore rules do not remove files already committed or erase old commits. The shell history file is created with mode `600`; commands prefixed with a space are omitted from saved zsh history. Avoid putting secrets in command arguments, which can also appear in process listings. New installer backup directories are private; permissions on older backups are unchanged.
+
+The machine-specific `~/libs_VVMex_269/env_setup.sh` runs only when `AARON_VVM_AUTO_ENV=1` is set in your local zsh configuration. Conda initialization can be disabled with `AARON_ZSH_CONDA=0`.
+
+Tmux uses `set-clipboard external`: tmux copies can reach the terminal clipboard, while application escape sequences cannot create tmux buffers. This also blocks Neovim's OSC 52 copies through tmux. If you need that integration, explicitly choose `set-clipboard on` after considering which applications you run inside tmux. Outside tmux, Neovim still copies yanks to the client clipboard over SSH.
+
+Setup and editor/plugin installation download and execute third-party code. Zsh plugins use pinned commits and the native zsh source download is checksum-verified; other package/plugin versions are not all pinned. Review upstream updates and only run editor tooling and the CMake helper in trusted projects. A review of the current checkout does not establish that Git history or downloaded dependencies contain no secrets or vulnerabilities.
+
 ## Update and publish
 
 After renaming the existing GitHub repository:
@@ -84,7 +94,7 @@ The checks validate editor formatting/LSP/Treesitter/Git integration and shell s
 
 ## Migration and backups
 
-This machine's combined checkout is `/work/aaron900129/aaron-dotfiles`. The previous `aaron-nvim` and `aaron-zsh` checkout paths are compatibility symlinks to the respective component directories. The installed Neovim config points directly to `nvim/` in the combined checkout. These compatibility links are local and are not part of the repository.
+The combined checkout can live at `~/aaron-dotfiles`. The previous `aaron-nvim` and `aaron-zsh` checkout paths may be kept as compatibility symlinks to the respective component directories. The installed Neovim config points directly to `nvim/` in the combined checkout. These compatibility links are local and are not part of the repository.
 
 The original zsh template repository and migration metadata are backed up under `~/.local/state/aaron-dotfiles/migration/`. Installers print their own backup paths under the component's state directory. Your previous shell startup file remains in use until you run the zsh installer or combined setup.
 

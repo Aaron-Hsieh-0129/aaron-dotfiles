@@ -5,7 +5,7 @@ data=$1
 build=$(mktemp -d "${TMPDIR:-/tmp}/aaron-zsh-build.XXXXXXXX")
 trap 'rm -rf -- "$build"' EXIT
 printf 'Building native zsh 5.9 (Conda binary has no version).\n'
-curl --fail --location --retry 3 --output "$build/zsh.tar.xz" \
+curl --fail --location --proto '=https' --proto-redir '=https' --retry 3 --output "$build/zsh.tar.xz" \
     https://cfhcable.dl.sourceforge.net/project/zsh/zsh/5.9/zsh-5.9.tar.xz
 checksum=9b8d1ecedd5b5e81fbf1918e876752a7dd948e05c1a0dba10ab863842d45acd5
 if command -v sha256sum >/dev/null; then

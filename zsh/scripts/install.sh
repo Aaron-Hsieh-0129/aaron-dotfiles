@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 target="${ZDOTDIR:-$HOME}/.zshrc"
 if [[ ! -f "$repo/.zshrc" || -L "$repo/.zshrc" ]]; then

@@ -37,10 +37,12 @@ else
 fi
 
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/aaron-zsh/history"
-mkdir -p "${HISTFILE:h}"
+# History can contain credentials; create it privately even with a permissive umask.
+(umask 077; mkdir -p "${HISTFILE:h}"; touch "$HISTFILE")
+chmod 600 "$HISTFILE"
 HISTSIZE=50000
 SAVEHIST=50000
-setopt APPEND_HISTORY SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS
+setopt APPEND_HISTORY SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS HIST_IGNORE_SPACE
 bindkey -e
 source "$AARON_ZSH_ROOT/config/aliases.zsh"
 

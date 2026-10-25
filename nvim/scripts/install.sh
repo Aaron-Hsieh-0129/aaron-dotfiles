@@ -1,6 +1,7 @@
 #!/bin/sh
 # Install this checkout; preserve an existing config and its runtime directories.
 set -eu
+umask 077
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 config_root=${XDG_CONFIG_HOME:-"$HOME/.config"}
 data_root=${XDG_DATA_HOME:-"$HOME/.local/share"}
@@ -12,8 +13,8 @@ if [ -L "$target" ] && [ "$(CDPATH= cd -- "$target" && pwd -P)" = "$repo_dir" ];
     printf 'Already installed: %s\n' "$target"
     exit 0
 fi
-backup="$state_root/aaron-nvim/backups/$(date +%Y%m%d-%H%M%S)-$$"
-mkdir -p "$backup"
+mkdir -p "$state_root/aaron-nvim/backups"
+backup=$(mktemp -d "$state_root/aaron-nvim/backups/$(date +%Y%m%d-%H%M%S).XXXXXXXX")
 if [ -e "$target" ] || [ -L "$target" ]; then
     mv "$target" "$backup/config"
 fi

@@ -2,6 +2,7 @@
 # Conda is optional; common home-directory installations are detected.
 # AARON_CONDA_EXE="$HOME/miniforge3/bin/conda"
 # AARON_ZSH_CONDA=0
+# AARON_VVM_AUTO_ENV=1 # source the trusted ~/libs_VVMex_269/env_setup.sh
 # AARON_NVIM_LAUNCHER="$HOME/aaron-dotfiles/nvim/scripts/nvim.sh"
 
 # Optional HPC environment. Set paths from your machine, then use vvm-env.
